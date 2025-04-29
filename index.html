@@ -1,0 +1,36 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Queen TiffyAI Frontend</title>
+  <link rel="stylesheet" href="style.css" />
+  <script defer src="connect.js"></script>
+  <script defer src="popup.js"></script>
+  <script defer src="price.js"></script>
+  <script defer src="trade.js"></script>
+  <script defer src="disconnect.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Queen TiffyAI Control Panel</h1>
+
+    <div id="wallet-section">
+      <button id="connectButton">Connect Wallet</button>
+      <div id="walletStatus"></div>
+    </div>
+
+    <div id="balanceSection" class="hidden">
+      <p><span id="balance">--</span> TIFFY</p>
+      <p><span id="usdValue">--</span> USD</p>
+    </div>
+
+    <div id="actionSection" class="hidden">
+      <button id="startAI">Activate AI Trader</button>
+      <button id="stopAI">Stop AI Trader</button>
+    </div>
+  </div>
+
+  <div id="popup" class="popup hidden"></div>
+  <div id="loading" class="loading hidden">Connecting...</div>
+</body>
+</html>
