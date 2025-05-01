@@ -1,7 +1,9 @@
-window.addEventListener("DOMContentLoaded", () => {
-  const web3 = new Web3("https://data-seed-prebsc-1-s1.binance.org:8545/");
+window.addEventListener("load", async () => {
+  if (typeof window.ethereum === 'undefined') return;
+
+  const web3 = new Web3(window.ethereum);
   const pairAddress = "0xa35641960651874F6b42f2ba4F77f717BA823229";
-  const TIFFYAI = "0x6df97Ec32401e23dEDB2E6cAF3035155890DC237";
+  const tiffyAddress = "0x6df97Ec32401e23dEDB2E6cAF3035155890DC237";
 
   const pairABI = [
     {
@@ -33,42 +35,74 @@ window.addEventListener("DOMContentLoaded", () => {
     },
   ];
 
-  const pairContract = new web3.eth.Contract(pairABI, pairAddress);
+  const tokenABI = [
+    {
+      constant: true,
+      inputs: [{ name: "_owner", type: "address" }],
+      name: "balanceOf",
+      outputs: [{ name: "balance", type: "uint256" }],
+      type: "function",
+    },
+    {
+      constant: true,
+      inputs: [],
+      name: "decimals",
+      outputs: [{ name: "", type: "uint8" }],
+      type: "function",
+    },
+  ];
+
+  const pair = new web3.eth.Contract(pairABI, pairAddress);
+  const token = new web3.eth.Contract(tokenABI, tiffyAddress);
 
   async function getBNBPriceUSD() {
-    try {
-      const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=binancecoin&vs_currencies=usd");
-      const data = await res.json();
-      return data.binancecoin.usd;
-    } catch (e) {
-      console.error("Failed to fetch BNB price", e);
-      return 0;
-    }
+    const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=binancecoin&vs_currencies=usd");
+    const data = await res.json();
+    return data.binancecoin.usd;
   }
 
-  async function updateTiffyPrice() {
+  async function getPriceUSD() {
     try {
-      const reserves = await pairContract.methods.getReserves().call();
-      const token0 = await pairContract.methods.token0().call();
-      const token1 = await pairContract.methods.token1().call();
+      const reserves = await pair.methods.getReserves().call();
+      const token0 = await pair.methods.token0().call();
+      const token1 = await pair.methods.token1().call();
 
       const reserve0 = web3.utils.fromWei(reserves._reserve0.toString());
       const reserve1 = web3.utils.fromWei(reserves._reserve1.toString());
 
-      let priceInBNB = token0.toLowerCase() === TIFFYAI.toLowerCase()
-        ? parseFloat(reserve1) / parseFloat(reserve0)
-        : parseFloat(reserve0) / parseFloat(reserve1);
+      let priceInBNB;
 
-      const bnbPriceUSD = await getBNBPriceUSD();
-      const priceUSD = priceInBNB * bnbPriceUSD;
+      if (token0.toLowerCase() === tiffyAddress.toLowerCase()) {
+        priceInBNB = parseFloat(reserve1) / parseFloat(reserve0);
+      } else {
+        priceInBNB = parseFloat(reserve0) / parseFloat(reserve1);
+      }
 
-      document.getElementById("usdValue").textContent = `$${priceUSD.toFixed(6)} USD`;
+      const bnbUSD = await getBNBPriceUSD();
+      return priceInBNB * bnbUSD;
     } catch (err) {
-      console.error("Error updating TiffyAI price:", err);
-      document.getElementById("usdValue").textContent = "Unavailable";
+      console.error("Error getting price:", err);
+      return 0;
     }
   }
 
-  updateTiffyPrice();
-  setInterval(updateTiffyPrice, 15000);
+  async function updateBalanceAndPrice() {
+    const accounts = await web3.eth.getAccounts();
+    const user = accounts[0];
+    const balanceRaw = await token.methods.balanceOf(user).call();
+    const decimals = await token.methods.decimals().call();
+    const balance = (balanceRaw / (10 ** decimals)).toFixed(4);
+
+    document.getElementById("balance").textContent = balance;
+
+    const priceUSD = await getPriceUSD();
+    const usdValue = (parseFloat(balance) * priceUSD).toFixed(2);
+    document.getElementById("usdValue").textContent = `${usdValue} USD`;
+  }
+
+  ethereum.on('accountsChanged', updateBalanceAndPrice);
+  ethereum.on('chainChanged', updateBalanceAndPrice);
+
+  updateBalanceAndPrice();
+  setInterval(updateBalanceAndPrice, 15000);
 });
