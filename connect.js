@@ -1,42 +1,58 @@
+// connect.js
+
+import WalletConnectProvider from "@walletconnect/web3-provider";
+import Web3 from "web3";
+
+let web3;
+let userAccount;
+
+// Elegant popup function
+function showPopup(message) {
+  const popup = document.getElementById("popup");
+  popup.textContent = message;
+  popup.classList.remove("hidden");
+  popup.classList.add("visible");
+
+  setTimeout(() => {
+    popup.classList.remove("visible");
+    popup.classList.add("hidden");
+  }, 3500);
+}
+
 document.getElementById("connectButton").addEventListener("click", async () => {
   try {
-    showPopup("Attempting wallet connection...");
+    showPopup("Connecting to wallet...");
 
+    // Try injected wallet first (MetaMask, Trust Wallet desktop)
     if (window.ethereum) {
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
-      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-      showPopup("Wallet Connected Successfully!");
+      await window.ethereum.request({ method: "eth_requestAccounts" });
+      web3 = new Web3(window.ethereum);
+      const accounts = await web3.eth.getAccounts();
+      userAccount = accounts[0];
+    } else {
+      // Fallback to WalletConnect
+      const provider = new WalletConnectProvider({
+        rpc: {
+          97: "https://data-seed-prebsc-1-s1.binance.org:8545", // BSC Testnet
+        },
+      });
+
+      await provider.enable();
+      web3 = new Web3(provider);
+      const accounts = await web3.eth.getAccounts();
+      userAccount = accounts[0];
+    }
+
+    if (userAccount) {
       document.getElementById("walletStatus").innerText = "Wallet Account Activated";
       document.getElementById("balanceSection").classList.remove("hidden");
       document.getElementById("actionSection").classList.remove("hidden");
+      showPopup("Wallet Connected Successfully!");
     } else {
-      // If MetaMask not found, fallback to wallet connect
-      showPopup("MetaMask not found, trying WalletConnect...");
-
-      const script = document.createElement('script');
-      script.src = "https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js";
-      document.body.appendChild(script);
-
-      script.onload = async () => {
-        const provider = new WalletConnectProvider.default({
-          rpc: {
-            97: "https://data-seed-prebsc-1-s1.binance.org:8545"
-          },
-        });
-
-        await provider.enable();
-        const web3 = new Web3(provider);
-        const accounts = await web3.eth.getAccounts();
-
-        if (accounts.length > 0) {
-          showPopup("WalletConnect Connected!");
-          document.getElementById("walletStatus").innerText = "Wallet Account Activated";
-          document.getElementById("balanceSection").classList.remove("hidden");
-          document.getElementById("actionSection").classList.remove("hidden");
-        }
-      };
+      showPopup("No wallet account detected.");
     }
-  } catch (error) {
-    showPopup("Connection Failed: " + error.message);
+  } catch (err) {
+    console.error(err);
+    showPopup("Connection Failed: " + err.message);
   }
 });
