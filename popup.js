@@ -1,20 +1,11 @@
-﻿function showPopup(message, duration = 3000) {
+function showPopup(message, duration = 4000) {
   const popup = document.getElementById("popup");
-  popup.innerText = message;
+  popup.textContent = message;
   popup.classList.remove("hidden");
+  popup.classList.add("visible");
 
   setTimeout(() => {
+    popup.classList.remove("visible");
     popup.classList.add("hidden");
   }, duration);
-}
-
-function showLoading(message = "Loading...") {
-  const loading = document.getElementById("loading");
-  loading.innerText = message;
-  loading.classList.remove("hidden");
-}
-
-function hideLoading() {
-  const loading = document.getElementById("loading");
-  loading.classList.add("hidden");
 }
