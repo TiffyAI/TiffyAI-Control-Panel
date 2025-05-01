@@ -1,5 +1,8 @@
 window.addEventListener("load", async () => {
-  if (typeof window.ethereum === 'undefined') return;
+  if (typeof window.ethereum === "undefined") {
+    console.warn("No wallet detected.");
+    return;
+  }
 
   const web3 = new Web3(window.ethereum);
   const pairAddress = "0x9F8Ed638f4Ddf65e18f3A3222f5275392329D07F";
@@ -15,7 +18,6 @@ window.addEventListener("load", async () => {
         { internalType: "uint112", name: "_reserve1", type: "uint112" },
         { internalType: "uint32", name: "_blockTimestampLast", type: "uint32" },
       ],
-      payable: false,
       stateMutability: "view",
       type: "function",
     },
@@ -56,12 +58,17 @@ window.addEventListener("load", async () => {
   const token = new web3.eth.Contract(tokenABI, tiffyAddress);
 
   async function getBNBPriceUSD() {
-    const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=binancecoin&vs_currencies=usd");
-    const data = await res.json();
-    return data.binancecoin.usd;
+    try {
+      const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=binancecoin&vs_currencies=usd");
+      const data = await res.json();
+      return data?.binancecoin?.usd || 0;
+    } catch (err) {
+      console.error("Error fetching BNB price:", err);
+      return 0;
+    }
   }
 
-  async function getPriceUSD() {
+  async function getTiffyPriceUSD() {
     try {
       const reserves = await pair.methods.getReserves().call();
       const token0 = await pair.methods.token0().call();
@@ -70,7 +77,7 @@ window.addEventListener("load", async () => {
       const reserve0 = web3.utils.fromWei(reserves._reserve0.toString());
       const reserve1 = web3.utils.fromWei(reserves._reserve1.toString());
 
-      let priceInBNB;
+      let priceInBNB = 0;
 
       if (token0.toLowerCase() === tiffyAddress.toLowerCase()) {
         priceInBNB = parseFloat(reserve1) / parseFloat(reserve0);
@@ -81,27 +88,38 @@ window.addEventListener("load", async () => {
       const bnbUSD = await getBNBPriceUSD();
       return priceInBNB * bnbUSD;
     } catch (err) {
-      console.error("Error getting price:", err);
+      console.error("Error fetching Tiffy price:", err);
       return 0;
     }
   }
 
   async function updateBalanceAndPrice() {
-    const accounts = await web3.eth.getAccounts();
-    const user = accounts[0];
-    const balanceRaw = await token.methods.balanceOf(user).call();
-    const decimals = await token.methods.decimals().call();
-    const balance = (balanceRaw / (10 ** decimals)).toFixed(4);
+    try {
+      const accounts = await web3.eth.getAccounts();
+      if (!accounts.length) {
+        document.getElementById("balance").textContent = "--";
+        document.getElementById("usdValue").textContent = "Unavailable";
+        return;
+      }
 
-    document.getElementById("balance").textContent = balance;
+      const user = accounts[0];
+      const balanceRaw = await token.methods.balanceOf(user).call();
+      const decimals = await token.methods.decimals().call();
+      const balance = (balanceRaw / 10 ** decimals).toFixed(4);
+      document.getElementById("balance").textContent = balance;
 
-    const priceUSD = await getPriceUSD();
-    const usdValue = (parseFloat(balance) * priceUSD).toFixed(2);
-    document.getElementById("usdValue").textContent = `${usdValue} USD`;
+      const priceUSD = await getTiffyPriceUSD();
+      const usdValue = (parseFloat(balance) * priceUSD).toFixed(2);
+      document.getElementById("usdValue").textContent = `${usdValue} USD`;
+    } catch (err) {
+      console.error("Balance/Price update error:", err);
+      document.getElementById("balance").textContent = "--";
+      document.getElementById("usdValue").textContent = "Unavailable";
+    }
   }
 
-  ethereum.on('accountsChanged', updateBalanceAndPrice);
-  ethereum.on('chainChanged', updateBalanceAndPrice);
+  ethereum.on("accountsChanged", updateBalanceAndPrice);
+  ethereum.on("chainChanged", () => location.reload());
 
   updateBalanceAndPrice();
   setInterval(updateBalanceAndPrice, 15000);
