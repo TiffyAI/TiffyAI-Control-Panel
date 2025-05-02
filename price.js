@@ -5,7 +5,7 @@ window.addEventListener("load", async () => {
   }
 
   const web3 = new Web3(window.ethereum);
-  const pairAddress = "0x427bF5b37357632377eCbEC9de3626C71A5396c1";
+  const pairAddress = "0x9f8ed638f4ddf65e18f3a3222f5275392329d07f";
   const tiffyAddress = "0x6df97Ec32401e23dEDB2E6cAF3035155890DC237";
 
   const pairABI = [
