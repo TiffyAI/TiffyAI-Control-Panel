@@ -1,12 +1,10 @@
 const { ethers } = require("ethers");
 
-// PancakeSwap Router ABI (swapExactTokensForETH, swapExactETHForTokens, etc.)
 const ROUTER_ABI = [
   "function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) payable returns (uint[] memory amounts)",
   "function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) returns (uint[] memory amounts)"
 ];
 
-// Standard ERC20 ABI (just approve and decimals needed here)
 const ERC20_ABI = [
   "function approve(address spender, uint256 amount) public returns (bool)",
   "function decimals() view returns (uint8)"
@@ -19,7 +17,7 @@ function createRouter(signer, routerAddress) {
 
 // Buy Tokens (BNB → Token)
 async function swapBNBForTokens(router, amountInBNB, tokenAddress, toAddress, amountOutMin) {
-  const path = ["0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", tokenAddress]; // BNB → Token
+  const path = ["0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", tokenAddress];
   const deadline = Math.floor(Date.now() / 1000) + 60 * 10;
 
   try {
@@ -30,23 +28,25 @@ async function swapBNBForTokens(router, amountInBNB, tokenAddress, toAddress, am
       deadline,
       { value: amountInBNB }
     );
+    console.log(`[Swap Tx] BNB -> Token Hash: ${tx.hash}`);
     await tx.wait();
-    console.log("[Swap Success] BNB → Token");
+    console.log("[Swap Success] BNB → Token confirmed");
   } catch (error) {
     console.error("[Swap Error] Buying failed:", error.message);
   }
 }
 
 // Sell Tokens (Token → BNB)
-async function swapTokensForBNB(router, amountInTokens, amountOutMin, tokenAddress, toAddress) {
+async function swapTokensForBNB(router, amountInTokens, amountOutMin, tokenAddress, toAddress, signer) {
   try {
-    const token = new ethers.Contract(tokenAddress, ERC20_ABI, router.runner); // signer is router.runner
+    const token = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
 
-    // Approve router to spend tokens
     const approveTx = await token.approve(router.address, amountInTokens);
+    console.log(`[Approve Tx] Hash: ${approveTx.hash}`);
     await approveTx.wait();
+    console.log("[Approval Success] Token approved for swap");
 
-    const path = [tokenAddress, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"]; // Token → BNB
+    const path = [tokenAddress, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"];
     const deadline = Math.floor(Date.now() / 1000) + 60 * 10;
 
     const tx = await router.swapExactTokensForETH(
@@ -56,8 +56,9 @@ async function swapTokensForBNB(router, amountInTokens, amountOutMin, tokenAddre
       toAddress,
       deadline
     );
+    console.log(`[Swap Tx] Token -> BNB Hash: ${tx.hash}`);
     await tx.wait();
-    console.log("[Swap Success] Token → BNB");
+    console.log("[Swap Success] Token → BNB confirmed");
   } catch (error) {
     console.error("[Swap Error] Selling failed:", error.message);
   }
