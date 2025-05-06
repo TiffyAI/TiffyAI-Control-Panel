@@ -7,18 +7,18 @@ const ROUTER_ABI = [
 
 const ERC20_ABI = [
   "function approve(address spender, uint256 amount) public returns (bool)",
+  "function allowance(address owner, address spender) view returns (uint256)",
   "function decimals() view returns (uint8)"
 ];
 
-// Setup router
 function createRouter(signer, routerAddress) {
   return new ethers.Contract(routerAddress, ROUTER_ABI, signer);
 }
 
-// Buy Tokens (BNB → Token)
+// Swap BNB → Token
 async function swapBNBForTokens(router, amountInBNB, tokenAddress, toAddress, amountOutMin) {
   const path = ["0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", tokenAddress];
-  const deadline = Math.floor(Date.now() / 1000) + 60 * 10;
+  const deadline = Math.floor(Date.now() / 1000) + 600;
 
   try {
     const tx = await router.swapExactETHForTokens(
@@ -36,18 +36,24 @@ async function swapBNBForTokens(router, amountInBNB, tokenAddress, toAddress, am
   }
 }
 
-// Sell Tokens (Token → BNB)
+// Swap Token → BNB
 async function swapTokensForBNB(router, amountInTokens, amountOutMin, tokenAddress, toAddress, signer) {
   try {
     const token = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
+    const allowance = await token.allowance(await signer.getAddress(), router.address);
 
-    const approveTx = await token.approve(router.address, amountInTokens);
-    console.log(`[Approve Tx] Hash: ${approveTx.hash}`);
-    await approveTx.wait();
-    console.log("[Approval Success] Token approved for swap");
+    if (allowance.lt(amountInTokens)) {
+      console.log(`[Allowance] Low. Approving ${ethers.utils.formatEther(amountInTokens)} tokens`);
+      const approveTx = await token.approve(router.address, amountInTokens);
+      console.log(`[Approve Tx] Hash: ${approveTx.hash}`);
+      await approveTx.wait();
+      console.log("[Approval Success] Token approved");
+    } else {
+      console.log("[Allowance] Sufficient. No approval needed.");
+    }
 
     const path = [tokenAddress, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"];
-    const deadline = Math.floor(Date.now() / 1000) + 60 * 10;
+    const deadline = Math.floor(Date.now() / 1000) + 600;
 
     const tx = await router.swapExactTokensForETH(
       amountInTokens,
