@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Queen TiffyAI Frontend</title>
+
+  <style>
+    body {
+      background: #0e0e0e;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 30px;
+      border-radius: 20px;
+      background: rgba(20, 20, 20, 0.8);
+      box-shadow: 0 0 25px #00f0ff, 0 0 50px #0088ff;
+      animation: glow-border 3s infinite alternate;
+    }
+
+    @keyframes glow-border {
+      0% {
+        box-shadow: 0 0 15px #00f0ff, 0 0 30px #0088ff;
+      }
+      100% {
+        box-shadow: 0 0 35px #00f0ff, 0 0 60px #00bfff;
+      }
+    }
+
+    h1, h3, p {
+      font-size: 2rem;
+      text-shadow: 0 0 10px #00f0ff, 0 0 20px #00f0ff;
+    }
+
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 20px;
+    }
+
+    button {
+      font-size: 1.5rem;
+      padding: 15px 30px;
+      margin: 10px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #00f0ff, #0088ff);
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 0 15px #00f0ff;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 25px #00f0ff;
+    }
+
+    #balanceSection {
+      margin-top: 30px;
+    }
+
+    #balanceSection p {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #00f0ff;
+      text-shadow: 0 0 15px #00f0ff, 0 0 30px #00bfff, 0 0 60px #00ffff;
+      animation: flicker 1s infinite alternate;
+    }
+
+    @keyframes flicker {
+      0% { opacity: 1; text-shadow: 0 0 10px #00f0ff, 0 0 20px #00bfff; }
+      100% { opacity: 0.85; text-shadow: 0 0 15px #00ffff, 0 0 35px #00bfff; }
+    }
+
+    #actionSection, #manualSection, #logSection {
+      margin-top: 30px;
+    }
+
+    pre {
+      font-size: 1.2rem;
+      text-align: left;
+      background: #1a1a1a;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #00f0ff;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #popup, #loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 20px;
+      font-size: 1.5rem;
+      color: #fff;
+      background: #111;
+      border-radius: 15px;
+      box-shadow: 0 0 20px #00f0ff;
+    }
+  </style>
+
+  <!-- Load Web3 for frontend DApp -->
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+
+  <!-- Script Files -->
+  <script defer src="connect.js"></script>
+  <script defer src="popup.js"></script>
+  <script defer src="price.js"></script>
+  <script defer src="trade.js"></script>
+  <script defer src="disconnect.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>TiffyAI Control Panel</h1>
+
+    <div id="wallet-section">
+      <button id="connectButton">Connect Wallet</button>
+      <div id="walletStatus"></div>
+    </div>
+
+    <div id="balanceSection" class="hidden">
+      <p><span id="balance">--</span> TIFFY</p>
+      <p><span id="usdValue">Loading...</span></p>
+    </div>
+
+    <div id="actionSection" class="hidden">
+      <button id="startAI">Activate AI Trader</button>
+      <button id="stopAI">Stop AI Trader</button>
+    </div>
+
+    <!-- Manual Trade Section -->
+    <div id="manualSection" class="hidden">
+      <h3>Manual Trading</h3>
+      <button id="manualBuy">Manual Buy</button>
+      <button id="manualSell">Manual Sell</button>
+    </div>
+
+    <!-- Transaction Log -->
+    <div id="logSection" class="hidden">
+      <h3>Trade Log</h3>
+      <pre id="tradeLog">Waiting for trades...</pre>
+    </div>
+  </div>
+
+  <div id="popup" class="popup hidden"></div>
+  <div id="loading" class="loading hidden">Connecting...</div>
+</body>
+</html>
